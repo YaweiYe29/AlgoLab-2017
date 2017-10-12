@@ -13,7 +13,7 @@
 using namespace std; 
 using namespace boost;
 
-//Directed graph with integer weights on edges. 
+//Undirected graph with integer weights on edges. 
 typedef adjacency_list<vecS, vecS, undirectedS,
 no_property,
 property<edge_weight_t, int> > Graph;
@@ -39,10 +39,12 @@ void testcase(){
         weightmap[e] = w;
     }
 
-    vector<Edge> mst;                                       // Vector to store MST edges (not a property map!) 
+    //first make kruskal to find MST
+    vector<Edge> mst;                                      
     kruskal_minimum_spanning_tree(GT, back_inserter(mst)); 
     vector<Edge>::iterator ebeg, eend = mst.end();
 
+    //then sum weights
     int weights = 0;
     for(ebeg=mst.begin(); ebeg != eend; ++ebeg){
         int w = boost::get(boost::edge_weight_t(), GT, *ebeg);
@@ -52,6 +54,7 @@ void testcase(){
     vector<int> distances(V);
     vector<Vertex> predecessors(V);
 
+    //and find shortest path to the furthest vertex from vertex 0
     Vertex v = 0;
     dijkstra_shortest_paths(GT, 0,
         predecessor_map(make_iterator_property_map(predecessors.begin(), get(vertex_index, GT))).
@@ -62,6 +65,7 @@ void testcase(){
                 max = distances[i];
         }
 
+    //output solution
     cout << weights << " " << max << endl;
 }
 
