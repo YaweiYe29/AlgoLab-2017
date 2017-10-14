@@ -1,4 +1,4 @@
-#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <boost/optional.hpp>
 
 #include <iostream>
@@ -10,13 +10,39 @@
 #include <algorithm>
 #include <climits>
 
-typedef CGAL::Exact_predicates_exact_constructions_kernel K;
-typedef K::Line_2 Line;
+typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
 typedef K::Point_2 Point;
-typedef K::Triangle_2 Triangle;
 typedef K::Segment_2 S;
 
 using namespace std;
+
+struct Line{
+    Point x;
+    Point y;
+public: Line(Point p1, Point p2){
+        x = p1;
+        y = p2;
+    }
+    Line(){}
+
+    void swap(){
+        Point tmp = x;
+        x = y;
+        y = tmp;
+    }
+};
+
+struct Triangle{
+    Line line1;
+    Line line2;
+    Line line3;
+
+public: Triangle(Line ln1, Line ln2, Line ln3){
+        line1 = ln1;
+        line2 = ln2;
+        line3 = ln3;
+    }
+};
 
 struct MapPart{
     Triangle* triangle;
@@ -28,27 +54,25 @@ Triangle* ConstructTriangle(int* points){
     Line ln2 = Line(Point(points[4], points[5]), Point(points[6], points[7]));
     Line ln3 = Line(Point(points[8], points[9]), Point(points[10], points[11]));
 
-    const Point* p1;
-    const Point* p2;
-    const Point* p3;
-    auto inter = CGAL::intersection(ln1, ln2);
-    auto inter2 = CGAL::intersection(ln2, ln3);
-    auto inter3 = CGAL::intersection(ln1, ln3);
-    p1 = boost::get<Point>(&*inter);
-    p2 = boost::get<Point>(&*inter2);
-    p3 = boost::get<Point>(&*inter3);
+    if(!left_turn(ln1.x, ln1.y, ln2.x)) 
+        ln1.swap();
 
-    return new Triangle(*p1, *p2, *p3);
+    if(!left_turn(ln2.x, ln2.y, ln3.x)) 
+        ln2.swap();
+
+    if(!left_turn(ln3.x, ln3.y, ln1.x)) 
+        ln3.swap();
+
+    return new Triangle(ln1, ln2, ln3);
 }
 
-bool IsInside(Triangle* triangle, S* segment){
-    if(CGAL::do_intersect(*triangle, *segment)){
-        auto in = CGAL::intersection(*triangle, *segment);
-        if (const S* s2 = boost::get<S>(&*in)){
-            return *s2 == *segment;
-        }
-    }
-    return false;
+bool right(Line line, Point p){
+    return right_turn(line.x, line.y, p);
+}
+
+bool IsInside(Triangle* triangle, Line* segment){
+    return !right(triangle->line1, segment->x) && !right(triangle->line2, segment->x) && !right(triangle->line3, segment->x)
+        && !right(triangle->line1, segment->y) && !right(triangle->line2, segment->y) && !right(triangle->line3, segment->y);
 }
 
 Point* NextPoint(){
@@ -71,7 +95,7 @@ void Hike(){
     int minCHF = INT_MAX, b = 0;
     cin >> m >> n;
 
-    S legs[m-1];
+    Line legs[m-1];
     MapPart maps[n];
     Point prevPoint = *NextPoint();
     int legsInsideCount[m-1];
@@ -79,7 +103,7 @@ void Hike(){
 
     for(int i = 0; i < m - 1; i++){
         Point curr = *NextPoint();
-        legs[i] = S(prevPoint, curr);
+        legs[i] = Line(prevPoint, curr);
         prevPoint = curr;
         legsInsideCount[i] = 0;
     }
@@ -89,8 +113,9 @@ void Hike(){
         maps[i].triangle = ConstructTriangle(tP);
 
         for(int j = 0; j < m - 1; j++)
-            if(IsInside(maps[i].triangle, &legs[j]))  
+            if(IsInside(maps[i].triangle, &legs[j])) {
                 maps[i].containedLegs.push_back(j);
+            }
     }
 
     bool first = true;
