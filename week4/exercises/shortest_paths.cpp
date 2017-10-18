@@ -21,6 +21,10 @@ typedef graph_traits<Graph>::edge_descriptor Edge;          //Edgetype
 typedef graph_traits<Graph>::edge_iterator EdgeIt;          // Edge iterator 
 typedef property_map<Graph,edge_weight_t>::type WeightMap;  //Property map edge->weight
 
+// Nothing difficult. 
+// Ignore position (lat, lon) of the vertexes.
+// Create graph from edges
+// run dijikstra on the graph and print distance. If is distance INT_MAX then print unreachable
 void FindPaths(){
     int n, m, q, ignore, from, to, w;
     cin >> n >> m >> q;
@@ -62,10 +66,6 @@ void FindPaths(){
 
 int main(){ 
     ios_base::sync_with_stdio(false);
-    //int n;
-    //cin >> n;
-    //while(n--){
-        FindPaths();
-    //}
+    FindPaths();
     return 0;
 }
