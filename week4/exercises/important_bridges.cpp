@@ -77,6 +77,7 @@ void Bridges(){
         }
     }
 
+    // commented solution is valid but I scored just 40/100 because of time limit.
     /*for(int i = 0; i < m; i++){
         remove_edge(edges[i].first, edges[i].second, g);
 	    vector<int> componentmap(n);	// We MUST use such a vector as an Exterior Property Map: Vertex -> Component
