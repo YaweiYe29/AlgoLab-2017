@@ -1,87 +1,61 @@
 #include<iostream>
 #include<climits>
-#include<unordered_map>
-
 
 using namespace std;
 
-bool check_bulbs(bool* bulbs, bool* pattern, int k, int n){
-    for(int i = 0; i < k; i++){
-        for(int j = 0; j < n/k; j++){
-            if(pattern[i] != bulbs[j*k + i])
-                return false;
-        }
+int check_bulbs(bool* bulbs, bool* pattern, int k, int from){
+    int wrong = 0;
+    for(int i = from; i < from + k; i++){
+        if(bulbs[i] != pattern[i - from])
+            wrong++;
     }
-
-    for(int i = 0; i < n; i++){
-        //cout << bulbs[i] << " ";
-    }
-    //cout << endl;
-    return true;
-}
-
-void sw(bool * bulbs, int to, bool whole){
-    if(whole){
-        for(int i = 0; i <= to; i++)
-            bulbs[i] = !bulbs[i];
-    } else 
-        bulbs[to] = !bulbs[to];
-}
-int global_min;
-unordered_map<string, int> memo;
-void light(bool* bulbs, bool* pattern, int pos, int whole, int k, int n, int n_of_switched, vector<pair<int,bool> > prevSteps){
-    if(pos >= n)
-        return;
-
-    sw(bulbs, pos, whole);
-    if(check_bulbs(bulbs, pattern, k, n))
-        if(n_of_switched < global_min){
-            global_min = n_of_switched;
-            cout << "New min:!!!!! " << global_min << " " << pos << " " << whole << endl;
-            for(int i = 0; i < n; i++){
-                cout << bulbs[i] << " ";
-            }
-            cout << endl;
-            sw(bulbs, pos, whole);
-            for(int i = 0; i < n; i++){
-                cout << bulbs[i] << " ";
-            }
-            sw(bulbs, pos, whole);
-            cout << endl;
-        }
-
-    }
-    //cout << "L\n";
-
-    //cout << "light" << endl;
-    for(int i = pos + 1; i < n; i++){
-        light(bulbs, pattern, pos+1, false, k, n, n_of_switched + 1);
-        light(bulbs, pattern, pos+1, true, k, n, n_of_switched + 1);
-    }
-
-    sw(bulbs, pos, whole);
+    return wrong;
 }
 
 void solve(){
     int n, k, x;
     cin >> n >> k >> x;
-    bool* pattern = new bool[n/k];
+    bool* pattern = new bool[k];
     bool* bulbs = new bool[n];
-    global_min = INT_MAX;
 
     for(int i = 1; i <= k; i++){
         pattern[k - i] = (1 << (i - 1)) & x;
     }
-    //cout << "Pattern created\n";
-    int tmp;
+
     for(int i = 0; i < n; i++)
         cin >> bulbs[i];
 
-     for(int i = 0; i < n; i++){
-        light(bulbs, pattern, i, false, k, n, 1);
-        light(bulbs, pattern, i, true, k, n, 1);
+    int global_single_switches = 0, global_all_switches = 0, local_single_switches, local_all_switches;
+    int groups = n/k;
+    int switches_needed[groups];
+    int switch_sum = 0;
+    int n_of_switches = 0;
+
+    for(int i = 0; i < groups; i++){
+        switches_needed[i] = check_bulbs(bulbs, pattern, k, i * k);
+        switch_sum += switches_needed[i];
     }
-    cout << global_min << endl;
+    switch_sum -= switches_needed[groups - 1];
+
+    for(int i = groups - 1; i >= 0; i--){
+        if(switch_sum == 0)
+            break;
+
+        if(switch_sum > ((i + 1) * k / 2)){
+            switch_sum = 0;
+            for(int j = 0; j < groups; j++){
+                switches_needed[j] = k - switches_needed[j];
+                switch_sum += switches_needed[j];
+            }
+            n_of_switches += switches_needed[i] + 1;
+        }
+        else {
+            n_of_switches += switches_needed[i];
+            switch_sum -= switches_needed[i];
+        }
+    }
+
+    cout << n_of_switches << endl;
 }
 
 int main(){
@@ -92,3 +66,68 @@ int main(){
     }
     return 0;
 }
+
+
+
+/*1 1 1 0 0 1 1 1
+1 1 1 0 0 1 1 1
+
+sum = 6 i = 7
+switches = 0
+if(6 > 4){
+    global_switch;
+    count again;
+    update sum;
+    switches += 1 + 0
+}
+
+0 0 0 1 1 0 0 0
+0 0 0 1 1 0 0 0
+
+sum = 2 i = 6
+switches = 1
+if(2 > 3){
+    nothing
+} else {
+    switches += local_single_switches // 0
+}
+
+0 0 0 1 1 0 0 0
+0 0 0 1 1 0 0 0
+
+sum = 2 i = 5
+switches = 1
+if(2 > 3){
+    nothing
+} else {
+    switches += local_single_switches // 0
+}
+
+0 0 0 1 1 0 0 0
+0 0 0 1 1 0 0 0
+
+sum = 2 i = 4
+switches = 1
+if(2 > 2){
+    nothing
+} else {
+    switches += local_single_switches // 1
+}
+
+0 0 0 1 1 0 0 0
+0 0 0 1 1 0 0 0
+
+sum = 1 i = 3
+switches = 2
+
+if(1 > 2){
+    nothing
+} else {
+    switches += local_single_switches // 1
+}
+
+sum = 0 i = 2
+switches = 3
+
+sum == 0 we are done
+*/
