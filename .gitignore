@@ -7,6 +7,12 @@ ompiled source #
 *.o
 *.so
 *.out 
+*.bin
+*.out
+*.cmake
+*.bak
+*.cxx
+*.txt
 
 # Packages #
 ############
@@ -20,12 +26,17 @@ ompiled source #
 *.rar
 *.tar
 *.zip
-
+*/.vscode/*
 # Logs and databases #
 ######################
 *.log
 *.sql
 *.sqlite
+
+# test folders
+tests/
+preparation/
+prep/
 
 # OS generated files #
 ######################
