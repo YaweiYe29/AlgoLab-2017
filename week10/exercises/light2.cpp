@@ -10,7 +10,6 @@ typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
 typedef CGAL::Delaunay_triangulation_2<K>  Triangulation;
 typedef Triangulation::Edge_iterator  Edge_iterator;
 
-typedef std::vector<K::Point_2>::iterator vec_it;
 typedef struct Player{
     int r;
     K::Point_2 p;
@@ -21,7 +20,13 @@ typedef struct Player{
 int cmp(Player p1, Player p2){
     return p1.killedBy > p2.killedBy;
 }
-
+/*
+Idea worth 100 points is a bit complicated. 
+Key is to create delaunay triangulation from lamps and then iterate through players and find closest lamp as in 60p solution.
+If distance between is greater than height of lamps + radius of player than player wins for sure. If not than we have to iterate 
+through lamps and find first one that "spotted" him. We save it it player's property. At the end if no one wins, we need to find player with
+highest spotted lamp and than find all with this number. Sort them and print. If there are winners than just print them.
+*/
 void testcase(){
     int m, n; 
     int height;

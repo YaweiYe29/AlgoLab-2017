@@ -16,7 +16,11 @@ typedef struct Player{
     int r;
     K::Point_2 p;
 } Player;
-
+/*
+Idea worth 60 points is very simple. 
+Key is to create delaunay triangulation from lamps and then iterate through players and find closest lamp.
+If distance between is smaller than height of lamps + radius of player than he is out. Otherwise wins.
+*/
 void testcase(){
     int m, n; 
     int height;
