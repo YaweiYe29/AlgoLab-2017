@@ -25,7 +25,7 @@ typedef struct MyEdge{
 } MyEdge;
 
 // finds max edge between all verticies and from
-void preprocess(int from, Graph & G, int n, WeightMap& weightmap, std::vector<std::vector<int> > & preprocessed){
+void preprocess(int from, Graph & G, int n, std::vector<std::vector<int>>& weights, std::vector<std::vector<int> > & preprocessed){
     std::vector<bool> visited(n, false);
     std::stack<int> dfs;
     dfs.push(from);
@@ -37,10 +37,11 @@ void preprocess(int from, Graph & G, int n, WeightMap& weightmap, std::vector<st
         dfs.pop();
         OutEdgeIt oebeg, oeend;
         for (boost::tie(oebeg, oeend) = boost::out_edges(curr, G); oebeg != oeend; ++oebeg) {
+            Vertex u = boost::source(*oebeg, G);
 			Vertex v = boost::target(*oebeg, G);
             if(visited[v])
                 continue;
-            int w = weightmap[*oebeg];
+            int w = weights[u][v];
             preprocessed[from][v] = std::max(w, preprocessed[from][curr]);
             visited[v] = true;
             dfs.push(v);
@@ -53,6 +54,7 @@ void testcase() {
     std::cin >> n >> tatooine;
     Graph G(n);
     WeightMap weightmap = boost::get(boost::edge_weight, G);
+    std::vector<std::vector<int>> weights (n, std::vector<int>(n, -1));
 
     // create graph from input
     for (int i = 0; i < n - 1; ++i) {
@@ -62,6 +64,7 @@ void testcase() {
             Edge e;	bool success;
             boost::tie(e, success) = boost::add_edge(i, j, G);
             weightmap[e] = w;
+            weights[i][j] = weights[j][i] = w;
         }
     }
 
@@ -73,7 +76,6 @@ void testcase() {
 	// iterate over all vertices and create new graph from the ones that form MST
     // and push other to the nonMST vector
     Graph G2(n);
-    WeightMap weightmap2 = boost::get(boost::edge_weight, G2);
     std::vector<std::vector<bool> > added = std::vector<std::vector<bool> >(n, std::vector<bool>(n, false));
     std::vector<std::pair<int,int> > nonMST;
 	for (int i = 0; i < n; ++i) {
@@ -82,10 +84,9 @@ void testcase() {
 		for (boost::tie(oebeg, oeend) = boost::out_edges(u, G); oebeg != oeend; ++oebeg) {
 			Vertex v = boost::target(*oebeg, G);
 			if (primpredmap[u] == v) {
-                weight += weightmap[*oebeg];
+                weight += weights[u][v]; 
                 Edge e;	bool success;
                 boost::tie(e, success) = boost::add_edge(u, v, G2);
-                weightmap2[e] = weightmap[*oebeg];
 			} else if (primpredmap[v] != u){
                 if(!added[u][v] && !added[v][u]){
                     added[u][v] = true;
@@ -98,11 +99,9 @@ void testcase() {
 	// find replacemenet of min cost
     int min = INT32_MAX;
     for (auto it = nonMST.begin(); it != nonMST.end(); ++it){
-        Edge e;	bool success;
-        boost::tie(e, success) = boost::edge(it->first, it->second, G);
-        int w = weightmap[e];
+        int w = weights[it->first][it->second];
         if(preprocessed[it->first][0] == -1){
-            preprocess(it->first, G2, n, weightmap2, preprocessed);
+            preprocess(it->first, G2, n, weights, preprocessed);
         }
         int w2 = w - preprocessed[it->first][it->second];
         if(w2 < min)
@@ -113,6 +112,7 @@ void testcase() {
 }
 
 int main(){
+    std::ios_base::sync_with_stdio(false);
     int t;
     std::cin >> t;
     while(t--){
