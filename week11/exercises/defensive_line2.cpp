@@ -6,13 +6,20 @@
 using namespace std;
 
 typedef struct Block{
-    int from, to, power;
+    int from, to;
     int getPlayers(){ return to - from + 1; }
-    void print (){ cout << "from: " << from << " to: " << to << " power: " << power << " players: " << getPlayers() << endl; }
+    void print (){ cout << "from: " << from << " to: " << to << " players: " << getPlayers() << endl; }
 } Block;
 
 int cmp(Block b1, Block b2){
-    return b1.getPlayers() > b2.getPlayers();
+    return b1.from < b2.from;
+}
+
+int sum(vector<Block> blocks){
+    int sum = 0;
+    for(auto it = blocks.begin(); it != blocks.end(); ++it)
+        sum += it->getPlayers();
+    return sum;
 }
 
 bool conflict(Block b1, Block b2){
@@ -40,7 +47,6 @@ void testcase(){
         if(power == k){
             Block b;
             b.from = j; b.to = i;
-            b.power = power;
             blocks.push_back(b);
             i++; j++;
         } else if (power > k){
@@ -53,27 +59,21 @@ void testcase(){
         cout << "fail\n";
         return;
     } else if (blocks.size() == m){
-        int sum = 0;
-        for (auto it = blocks.begin(); it != blocks.end(); it++){
-            sum += it->getPlayers();
-        }
-        cout << sum << endl;
-        return;
-    }
-    
-    sort(blocks.begin(), blocks.end(), cmp);
-    if(m == 1){
-        std::cout << blocks.begin()->getPlayers() << endl;
+        cout << sum(blocks) << endl;
         return;
     }
 
-    int max = 0;
-    // try every with every block and find nonconflicting maximum | just for m == 2
+    sort(blocks.begin(), blocks.end(), cmp);
+
+    int max = 0, prevRight, currRight = -1, last_i;
     for (int i = 0; i < blocks.size(); i++){
-        for (int j = i + 1; j < blocks.size(); j++){
-            if(conflict(blocks[i], blocks[j])){
-                max = std::max(max, blocks[i].getPlayers() + blocks[j].getPlayers());
-            }
+        if(blocks[i].from > currRight){
+            prevRight = currRight;
+            currRight = blocks[i].to;
+            max += blocks[i].getPlayers();
+            last_i = i;
+        } else {
+            
         }
     }
     if(max == 0)
