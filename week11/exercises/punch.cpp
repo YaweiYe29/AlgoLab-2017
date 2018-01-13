@@ -1,103 +1,54 @@
+/*Idea from https://github.com/timethy/algolab/blob/master/week11/punch/punch.cpp*/
 #include <iostream>
 #include <cassert>
 #include <algorithm>
 #include <vector>
-#include <unordered_map>
 
-int min_price, max_beverages;
-
-int getUsed(std::unordered_map<int, int> &counts, std::unordered_map<int,int> &used){
-    int sum = 0;
-    for(auto it = counts.begin(); it != counts.end(); ++it){
-        sum += std::min(it->second, used[it->first]);
-    }
-    return sum;
-}
-
-void dp(std::unordered_map<int, int> &counts, std::unordered_map<int,int> &used, std::unordered_map<int,int> &prices, 
-        int needed, int price, int best_volume){
-    //std::cout << "needed: " << needed << std::endl;
-    if(needed <= 0){
-        int beverages = getUsed(counts, used);
-        if(price < min_price){
-            min_price = price;
-            max_beverages = beverages;
-        } else if (price == min_price){
-            max_beverages = std::max(max_beverages, beverages);
-        }
-        return;
-    }
-
-    bool selected = false;
-    int best_price = price + prices[best_volume];
-    for(auto it = counts.begin(); it != counts.end(); ++it){
-        int needed2 = needed - it->first;
-        int price2 = price + prices[it->first];
-        if((needed2 <= 0 && it->first != best_volume) || counts[best_volume] >= used[best_volume]){
-            selected = true;
-            used[it->first]++;
-            dp(counts, used, prices, needed2, price2, best_volume);
-            used[it->first]--;
-        }
-    }
-    //if(!selected){
-        int needed2 = needed - best_volume;
-        used[best_volume]++;
-        dp(counts, used, prices, needed2, best_price, best_volume);
-        used[best_volume]--;
-   // }
-}
+using namespace std;
 
 void testcase() {
-    min_price = INT32_MAX;
-    max_beverages = 0;
     int n, k;
-    std::cin >> n >> k;
-    std::unordered_map<int,int> counts, used, prices;
-    std::vector<std::pair<int,int>> beverages(n);
-    double minRatio = 10000.00001;
-    int minVolume, minPrice;
+    cin >> n >> k;
+    vector<int> volumes(n), costs(n);
     for(int i = 0; i < n; i++){
-        std::cin >> beverages[i].first >> beverages[i].second;
-        double ratio = (double)((double)beverages[i].first / (double)beverages[i].second);
-        if(ratio < minRatio){
-            minRatio = ratio;
-            minVolume = beverages[i].second;
-            minPrice = beverages[i].first;
+        cin >> costs[i] >> volumes[i];
+    }
+    int maxVolume = k + *max_element(volumes.begin(), volumes.end());           // max possible volume needed
+    vector<vector<pair<int,int>>> memo(n, vector<pair<int,int>>(maxVolume));    // DP table
+    memo[0][0] = make_pair(0,0);                                                // (cost, number of distinct beverages)
+    for(int i = 1; i < maxVolume; i++){
+        int ntimes = (i + volumes[0] - 1) / volumes[0];                         // how many packs of beverage 0 we need
+        memo[0][i] = make_pair(ntimes * costs[0], 1);                           // cost of volume i only with beverage 0
+    }
+    for(int i = 1; i < n; i++){
+        memo[i][0] = memo[i-1][0];
+        for(int j = 1; j < maxVolume; j++){ // for every possible volume we will try if the cost can be minimized by replace one beverage with ith one
+            auto not_added = memo[i -1][j];
+            int min_cost, max_bev;
+            if(j < volumes[i]){             // if targeted volume is smaller then the one with the beverage than take it
+                min_cost = costs[i];
+                max_bev = 1;
+            } else {                        // else find state where volume is targeted volume - volume of curr beverage. And try this cost and n. of beverages
+                auto added = memo[i][j - volumes[i]];  
+                min_cost = added.first + costs[i];
+                max_bev = added.second + (added == memo[i-1][j - volumes[i]] ? 1 : 0);
+            }
+            if(min_cost > not_added.first){ // if its cheaper to keep the same beverage do it
+                min_cost = not_added.first;
+                max_bev = not_added.second;
+            } else if(min_cost == not_added.first){ // if costs are the same than take the one with more distinct beverages
+                max_bev = max(max_bev, not_added.second);
+            }
+            memo[i][j] = make_pair(min_cost, max_bev);
         }
     }
-    for(int i = 0; i < n; i++){
-        int cost = beverages[i].first, volume = beverages[i].second;
-        double ratio = (double)((double)cost/(double)volume);
 
-         if((volume < minVolume && cost > minPrice) || (minVolume > volume && cost > minPrice) || (minVolume * 2 > volume && cost > 2 * minPrice))
-            continue;
-        //if(ratio > minRatio && cost > minPrice)
-            //continue;
-        if(prices[volume] == 0 || prices[volume] > cost){
-            prices[volume] = cost;
-            counts[volume] = 1;
-        } else if(prices[volume] == cost){
-            counts[volume]++;
-        }
-    }
-
-    /*std::cout << " k: " << k << std::endl;
-
-    for(auto it = counts.begin(); it != counts.end(); ++it){
-        std::cout << it->first << " -> " << it->second << " (" << prices[it->first] << ")"; 
-        if(it->first == minVolume)
-            std::cout << " BEST VOLUME ";
-        std::cout << std::endl;
-    }*/
-
-    dp(counts, used, prices, k, 0, minVolume);
-    std::cout << min_price << " " << max_beverages << std::endl;
+    std::cout << memo[n-1][k].first << " " << memo[n-1][k].second << std::endl;
 }
 
 int main(){
     int t;
-    std::cin >> t;
+    cin >> t;
     while(t--){
         testcase();
     }
