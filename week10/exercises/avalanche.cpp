@@ -1,59 +1,25 @@
-// Includes
-// ========
 // STL includes
 #include <iostream>
-#include <cstdlib>
+#include <vector>
+
 // BGL includes
 #include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/cycle_canceling.hpp>
-#include <boost/graph/push_relabel_max_flow.hpp>
-#include <boost/graph/successive_shortest_path_nonnegative_weights.hpp>
-#include <boost/graph/find_flow_cost.hpp>
+#include <boost/graph/dijkstra_shortest_paths.hpp> 
+#include <boost/graph/max_cardinality_matching.hpp>
 
 // BGL Graph definitions
-// ===================== 
-// Graph Type with nested interior edge properties for Cost Flow Algorithms
-typedef boost::adjacency_list_traits<boost::vecS, boost::vecS, boost::directedS> Traits;
-typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, boost::no_property,
-    boost::property<boost::edge_capacity_t, long,
-        boost::property<boost::edge_residual_capacity_t, long,
-            boost::property<boost::edge_reverse_t, Traits::edge_descriptor,
-                boost::property <boost::edge_weight_t, long> > > > > Graph; // new!
-// Interior Property Maps
-typedef boost::property_map<Graph, boost::edge_capacity_t>::type      EdgeCapacityMap;
-typedef boost::property_map<Graph, boost::edge_weight_t >::type       EdgeWeightMap; // new!
-typedef boost::property_map<Graph, boost::edge_residual_capacity_t>::type ResidualCapacityMap;
-typedef boost::property_map<Graph, boost::edge_reverse_t>::type       ReverseEdgeMap;
-typedef boost::graph_traits<Graph>::vertex_descriptor          Vertex;
-typedef boost::graph_traits<Graph>::edge_descriptor            Edge;
-typedef boost::graph_traits<Graph>::out_edge_iterator  OutEdgeIt; // Iterator
+typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, boost::allow_parallel_edge_tag, boost::property<boost::edge_weight_t, int> > Graph;
+typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, boost::property<boost::edge_weight_t, int> > UGraph;
 
-// Custom Edge Adder Class, that holds the references
-// to the graph, capacity map, weight map and reverse edge map
-// ===============================================================
-class EdgeAdder {
-    Graph &G;
-    EdgeCapacityMap &capacitymap;
-    EdgeWeightMap &weightmap;
-    ReverseEdgeMap  &revedgemap;
+typedef boost::property_map<Graph, boost::edge_weight_t>::type	WeightMap;	// property map to access the interior property edge_weight_t
+typedef boost::graph_traits<UGraph>::vertex_descriptor		Vertex;
+typedef boost::graph_traits<Graph>::edge_descriptor		Edge;
 
-public:
-    EdgeAdder(Graph &G, EdgeCapacityMap &capacitymap, EdgeWeightMap &weightmap, ReverseEdgeMap &revedgemap) 
-        : G(G), capacitymap(capacitymap), weightmap(weightmap), revedgemap(revedgemap) {}
-
-    void addEdge(int u, int v, long c, long w) {
-        std::cout << "Adding edge from " << u << " to " << v << " with cap " << c << " and cost " << w << std::endl;
-        Edge e, rev_e;
-        boost::tie(e, boost::tuples::ignore) = boost::add_edge(u, v, G);
-        boost::tie(rev_e, boost::tuples::ignore) = boost::add_edge(v, u, G);
-        capacitymap[e] = c;
-        weightmap[e] = w; // new!
-        capacitymap[rev_e] = 0;
-        weightmap[rev_e] = -w; // new
-        revedgemap[e] = rev_e; 
-        revedgemap[rev_e] = e; 
-    }
-};
+void addEdge(int from, int to, int w, WeightMap &weightmap, Graph &G){
+    Edge e;	bool success;
+	boost::tie(e, success) = boost::add_edge(from, to, G);
+	weightmap[e] = w;
+}
 
 void testcase() {
     /*
@@ -67,46 +33,66 @@ void testcase() {
     int n, m, a, s, c, d;
     std::cin >> n >> m >> a >> s >> c >> d;
 
-    int N = n + 3;
     // Create Graph and Maps
-    Graph G(N);
-    EdgeCapacityMap capacitymap = boost::get(boost::edge_capacity, G);
-    EdgeWeightMap weightmap = boost::get(boost::edge_weight, G);
-    ReverseEdgeMap revedgemap = boost::get(boost::edge_reverse, G);
-    ResidualCapacityMap rescapacitymap = boost::get(boost::edge_residual_capacity, G);
-    EdgeAdder eaG(G, capacitymap, weightmap, revedgemap);
-    
-    int source = n;
-    int gate = n + 1;
-    int sink = n + 2;
+    Graph G(n);
+	WeightMap weightmap = boost::get(boost::edge_weight, G);
 
     for (int i = 0; i < m; i++){
         int x, y, z;
         char w;
         std::cin >> w >> x >> y >> z;
-        eaG.addEdge(x, y, INT32_MAX, -z);
+        addEdge(x, y, z, weightmap, G);
         if(w == 'L')
-            eaG.addEdge(y, x, INT32_MAX, -z);
+            addEdge(y, x, z, weightmap, G);
     }
-    
+
+    std::vector<std::vector<int>> dist(a, std::vector<int>(n));
     for(int i = 0; i < a; i++){
         int start;
         std::cin >> start;
-        eaG.addEdge(source, start, 1, 0);
+        boost::dijkstra_shortest_paths(G, start, boost::distance_map(boost::make_iterator_property_map(dist[i].begin(), boost::get(boost::vertex_index, G))));
     }
 
+    std::vector<std::vector<int>> graph(a, std::vector<int>(s));
     for(int i = 0; i < s; i++){
         int shelter;
         std::cin >> shelter;
-        eaG.addEdge(shelter, gate, c, -d);
+        for(int j = 0; j < a; j++){
+            //std::cout << "a: " << j << " s: " << i << " dist: " << dist[j][shelter] << std::endl;
+            graph[j][i] = dist[j][shelter];
+        }
     }
 
-    eaG.addEdge(gate, sink, 1, 0);
 
-    int flow = boost::push_relabel_max_flow(G, source, sink);
-     boost::cycle_canceling(G);
-    int cost = boost::find_flow_cost(G);
-    std::cout << cost << std::endl;
+    int left = 0, right = INT32_MAX, middle;
+    while(left < right){
+        middle = left + (right - left) / 2;
+        UGraph uG(a + c * s);
+        for(int i = 0; i < a; i++){
+            for(int j = 0; j < s; j++){
+                if(graph[i][j] == INT32_MAX)
+                    continue;
+                for(int k = 1; k <= c; k++){
+                    if(graph[i][j] + k * d <= middle){
+                        boost::add_edge(i, a + ((k-1) * s) + j, uG);
+                    }
+                }
+            }
+        }
+        std::vector<Vertex> matemap(a + c * s);
+	    boost::edmonds_maximum_cardinality_matching(uG, boost::make_iterator_property_map(matemap.begin(), get(boost::vertex_index, uG)));
+	    int agents = 0;
+        const Vertex NULL_VERTEX = boost::graph_traits<Graph>::null_vertex();
+        for (int i = 0; i < a; i++) { // Count the number of matched agents.
+            agents += (matemap[i] != NULL_VERTEX);
+        }
+        if(agents == a){
+            right = middle;
+        } else {
+            left =  middle + 1;
+        }
+    }
+    std::cout << left << std::endl;
 }
 
 int main(){
