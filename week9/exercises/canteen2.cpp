@@ -62,7 +62,7 @@ void testcase() {
     std::cin >> n;
 
 	// Create Graph and Maps
-    Graph G(2 * n + 1);
+    Graph G(2 * n + 2);
     EdgeCapacityMap capacitymap = boost::get(boost::edge_capacity, G);
     EdgeWeightMap weightmap = boost::get(boost::edge_weight, G);
     ReverseEdgeMap revedgemap = boost::get(boost::edge_reverse, G);
@@ -72,14 +72,14 @@ void testcase() {
 	Vertex src = 2 * n;
 	Vertex sink = 2 * n + 1;
 
-    // from src to all buyers
+    // from src to all days
     for (int i = 0; i < n; i++){
         int day, cost;
         std::cin >> day >> cost;
         eaG.addEdge(src, i, day, cost);
     }
 
-    // from every state to sink (can be n-edges)
+    // from every day to sink (can be n-edges)
     for (int i = 0; i < n; i++){
         int stud, cost;
         std::cin >> stud >> cost;
@@ -87,7 +87,7 @@ void testcase() {
         eaG.addEdge(i, sink, stud, 20 - cost);
     }
 
-    // from every site to state 
+    // from every day to next day
     for (int i = 0; i < n - 1; i++){
         int volume, cost;
         std::cin >> volume >> cost;
@@ -96,27 +96,18 @@ void testcase() {
 
 	// we should use this one if we wanna have 100p
     int flow = boost::push_relabel_max_flow(G, src, sink);
-    //boost::cycle_canceling(G);
     boost::successive_shortest_path_nonnegative_weights(G, src, sink);
     int cost = boost::find_flow_cost(G);
-
-    OutEdgeIt e, eend;
-    int income = 0;
-    int oldIncome = 0;
-    for(boost::tie(e, eend) = boost::out_edges(boost::vertex(sink,G), G); e != eend; ++e) {
-        int tmp_i = rescapacitymap[*e] - capacitymap[*e];
-        income += tmp_i * (20 + weightmap[*e]);
-        oldIncome += tmp_i * (-1) * weightmap[*e];
-    }
 
     if(flow < students)
         std::cout << "impossible ";
     else
         std::cout << "possible ";
-	std::cout << flow << " " << income - (cost - oldIncome) << std::endl; 
+	std::cout << flow << " " << 20*flow - cost << std::endl; 
 }
 
 int main(){
+    std::ios_base::sync_with_stdio(false);
     int n;
     std::cin >> n;
     while(n--){
