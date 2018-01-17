@@ -49,27 +49,22 @@ public:
 	}
 };
 
-std::set<int> bfs(Graph &G, int start, ResidualCapacityMap &rescapacitymap, EdgeCapacityMap &capacitymap, int n, int * cutPrice) {
-    // BFS to find vertex set S
-    std::vector<int> vis(n, false); // visited flags
+// find min cut and return set of vertices that occur before min cut edges from "start"
+// DFS that explores space bordered with bottleneck edges
+std::set<int> bfs(Graph &G, int start, ResidualCapacityMap &rescapacitymap, EdgeCapacityMap &capacitymap, int n) {
+    std::vector<int> vis(n, false);
     std::set<int> visited;
-	std::queue<int> Q; // BFS queue (from std:: not boost::)
-	vis[start] = true; // Mark the source as visited
+	std::queue<int> Q;
+	vis[start] = true;
     visited.insert(start);
 	Q.push(start);
-    *cutPrice = 0;
 	while (!Q.empty()) {
 		const int u = Q.front();
 		Q.pop();
 		OutEdgeIt ebeg, eend;
 		for (boost::tie(ebeg, eend) = boost::out_edges(u, G); ebeg != eend; ++ebeg) {
 			const int v = boost::target(*ebeg, G);
-			// Only follow edges with spare capacity
-			if (vis[v]) continue;
-            if (rescapacitymap[*ebeg] == 0){
-                *cutPrice += capacitymap[*ebeg];
-                continue;
-            }
+            if (rescapacitymap[*ebeg] == 0 || vis[v]) continue;
 			vis[v] = true;
             visited.insert(v);
 			Q.push(v);
@@ -90,7 +85,7 @@ void testcase() {
 	ResidualCapacityMap rescapacitymap = boost::get(boost::edge_residual_capacity, G);
 	EdgeAdder eaG(G, capacitymap, revedgemap);
 
-    // from src to all buyers
+    //load graph
     for (int i = 0; i < m; i++){
         int from, to, cap;
         std::cin >> from >> to >> cap;
@@ -98,39 +93,36 @@ void testcase() {
     }
 
     std::set<int> finalStatues;
-    int cutPrice = 0;
-    int minCutPrice = 123456;
+    int minCutPrice = INT32_MAX;
 
+    // from start to all vertices
+    // find max flow + bottleneck edges
+    // pick the one with minimum flow(minimal mine cost) 
     for (int i = 1; i < n; i++){
         int flow = boost::push_relabel_max_flow(G, 0, i);
-        auto set = bfs(G, i, rescapacitymap, capacitymap, n, &cutPrice);
-
-        if(minCutPrice > cutPrice) {
-            minCutPrice = cutPrice;
+        auto set = bfs(G, 0, rescapacitymap, capacitymap, n);
+        if(minCutPrice > flow) {
+            minCutPrice = flow;
             finalStatues = set;
-            for(auto it = finalStatues.begin(); it != finalStatues.end(); ++it){
-                std::cout << *it << " ";
-            }
-            std::cout << std::endl;
+        } else if (minCutPrice == flow && set.size() > finalStatues.size()){
+            finalStatues = set;
         }
     }
 
+    // from all vertices to start
+    // do the same as well
     for (int i = 1; i < n; i++){
         int flow = boost::push_relabel_max_flow(G, i, 0);
-        auto set = bfs(G, i, rescapacitymap, capacitymap, n, &cutPrice);
-
-        if(minCutPrice > cutPrice) {
-            minCutPrice = cutPrice;
+        auto set = bfs(G, i, rescapacitymap, capacitymap, n);
+        if(minCutPrice > flow) {
+            minCutPrice = flow;
             finalStatues = set;
-            for(auto it = finalStatues.begin(); it != finalStatues.end(); ++it){
-                std::cout << *it << " ";
-            }
-            std::cout << std::endl;
+        } else if (minCutPrice == flow && set.size() > finalStatues.size()){
+            finalStatues = set;
         }
     }
-
-	// we should use this one if we wanna have 100p
-    std::cout << cutPrice << std::endl << finalStatues.size() << " ";
+    // print min cost and sculptures in the minimal cost
+    std::cout << minCutPrice << std::endl << finalStatues.size() << " ";
     for(auto it = finalStatues.begin(); it != finalStatues.end(); ++it){
         std::cout << *it << " ";
     }
