@@ -1,104 +1,112 @@
 #include <iostream>
 #include <vector>
-#include <cassert>
 #include <algorithm>
-#include <unordered_map>
-#include <utility>
-#include <string>
+#include <cmath>
+#include <map>
 
 using namespace std;
 
-unordered_map<string, int> memo;
-
-string vector_to_string(vector<int> vec){
-    string s = "";
-    for(int i = 0; i < vec.size(); i++){
-        s += std::to_string(vec[i]);
-    }
-    return s;
+// memo getters and setters
+vector<vector<vector<vector<vector<int>>>>> memo;
+int get_memo(vector<int> &p){
+    return memo[p[0]][p[1]][p[2]][p[3]][p[4]];
+}
+void set_memo(vector<int> &p, int value){
+    memo[p[0]][p[1]][p[2]][p[3]][p[4]] = value;
 }
 
-bool same(vector<int> pos){
-    int ii = pos[0];
-    for(int i = 0; i < pos.size(); i++)
-        if(ii != pos[i])
-            return false;
-
-    return true;
-}
-
-int poker(vector<int> pos, vector<vector<int> >& stacks){
-    cout << "[";
-    for(int i = 0; i < pos.size(); i++){
-        cout << pos[i] << ",";
-    }
-    cout << "]\n";
-
-    for(int i = 0; i < pos.size(); i++){
-        if(pos[i] < 0)
+int dp(vector<int> &positions, vector<vector<int>> &stacks, int n){
+    for(int i = 0; i < n; i++){
+        if(positions[i] < 0)
             return 0;
     }
+    int memo_val = get_memo(positions);
+    if (memo_val != -1)
+        return memo_val;
 
-    string hashed = vector_to_string(pos);
-    if(memo.find(hashed) != memo.end())
-        return memo[hashed];
-
-    vector<int> res(pow(2, pos.size()));
-    cout << "pos.size: " << pos.size() << " pow: " << res.size() << endl;
-    for(int i = 0; i < res.size(); i++) {
-        vector<int> newPos = pos;
-        for(int j = 0; j < pos.size(); j++){
-            cout << "i: " << i << " j: " << j << endl;
-            if(i >> j & 1){
-                cout << "new pos\n";
-                newPos[j] = newPos[j] - 1;
+    int limit = 1 << n;
+    int points = 0;
+    for(int i = 1; i < limit; i++){
+        map<int,int> selected_colors;
+        bool cont = false;
+        for(int j = 0; j < n; j++){
+            if(i & 1 << j){
+                if(positions[j] == 0){      // empty stack.. this combination is not allowed!
+                    cont = true;            // if position == 0 than stack is empty
+                    break;
+                }
             }
         }
-        res[i] = poker(newPos, stacks);
-        if(same(newPos))
-            res[i] += pow(2, pos.size() - 2);
+        if(cont) continue;                  // if we chose combination which takes chip from empty stack we omit this combination
+
+        for(int j = 0; j < n; j++){
+            if(i & 1 << j){                 // count color counts in the turn
+                selected_colors[stacks[j][positions[j] - 1]]++;
+                positions[j]--;
+            }
+        }
+        int pts = 0;                        // and add points
+        for(auto it = selected_colors.begin(); it != selected_colors.end(); ++it){
+            if(it->second > 1){
+                pts += pow(2, it->second - 2);
+            }
+        }
+        pts += dp(positions, stacks, n);    // plus points in next turns
+        for(int j = 0; j < n; j++){
+            if(i & 1 << j){
+                positions[j]++;
+            }
+        }
+        points = max(points, pts);          // maximize turn
     }
-    
-    memo[hashed] = *std::max_element(res.begin(), res.end());
-    return memo[hashed];
+    set_memo(positions, points);
+    return points;
 }
 
-void testcases(){
-    int n_of_stacks;
-    cin >> n_of_stacks;
-    memo.clear();
-
-    std::vector<int> stacks_sizes(n_of_stacks);
-    std::vector<vector<int > > stacks(n_of_stacks, vector<int>());
-
-    for(int i = 0; i < n_of_stacks; i++){
-        cin >> stacks_sizes[i];
+void testcase(){
+    int n;
+    cin >> n;
+    vector<vector<int>> stacks(n);
+    vector<int> counts(5, 0);
+    vector<int> positions(5, 0);
+    for(int i = 0; i < n; i++){                 // load stack sizes
+        cin >> counts[i];
+        stacks[i].reserve(counts[i]);
+        positions[i] = counts[i];
     }
-
-    for(int i = 0; i < n_of_stacks; i++){
-        for(int j = 0; j < stacks_sizes[i]; j++){
-            int x;
-            cin >> x;
-            stacks[i].push_back(x);
+    vector<vector<vector<int>>> tmp = vector<vector<vector<int>>>(3, vector<vector<int>>(2, vector<int>(3)));       // huge memo suited for max 5 stacks
+    memo = vector<vector<vector<vector<vector<int>>>>>(counts[0] + 1,                                               // each dimension for each stack
+                  vector<vector<vector<vector<int>>>>(counts[1] + 1,                                                // if there are less stacks than 5
+                         vector<vector<vector<int>>>(counts[2] + 1,                                                 // than last dimensions are of size 1
+                                vector<vector<int>>(counts[3] + 1, 
+                                       vector<int>(counts[4] + 1, -1)))));
+    for(int i = 0; i < n; i++){                 // load stacks
+        for(int j = 0; j < counts[i]; j++){
+            int color;
+            cin >> color;
+            stacks[i].push_back(color);
         }
     }
-
-    for(int i = 0; i < n_of_stacks; i++){
-        stacks_sizes[i] = stacks_sizes[i] - 1;
-    }
-
-    if(n_of_stacks == 1){
-        cout << 0 << endl;
-        return;
-    }
-
-    cout << poker(stacks_sizes, stacks) << endl;
+    cout << dp(positions, stacks, n) << endl;
+    /*for(int i1 = 0; i1 < counts[0] + 1; i1++){                                                                    // debug output
+        for(int i2 = 0; i2 < counts[1] + 1; i2++){
+            for(int i3 = 0; i3 < counts[2] + 1; i3++){
+                for(int i4 = 0; i4 < counts[3] + 1; i4++){
+                    for(int i5 = 0; i5 < counts[4] + 1; i5++){
+                        cout << i1 << i2 << i3 << i4 << i5 << " -> " << memo[i1][i2][i3][i4][i5] << endl;
+                    }
+                }
+            }
+        }
+    }*/
 }
 
 int main(){
+    ios_base::sync_with_stdio(false);
     int n;
     cin >> n;
     while(n--){
-        testcases();
+        testcase();
     }
+    return 0;
 }
