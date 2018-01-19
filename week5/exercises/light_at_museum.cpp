@@ -1,8 +1,7 @@
+/* Idea worth 20/100 points -> recursion is too slow*/
 #include <iostream>
 #include <vector>
 #include <climits>
-#include <string>
-#include <unordered_map>
 
 using namespace std;
 
@@ -18,16 +17,14 @@ struct Room{
 };
 
 struct Circuit{
-    Room* rooms;
-    int m;
+    vector<Room> rooms;
 public: Circuit(){}
 public: Circuit(int m){
-    rooms = new Room[m];
-    this->m = m;
+    rooms = vector<Room>(m);
 }
     void swap(){
-        for(int i = 0; i < m; i++){
-            rooms[i].swap();
+        for(auto it = rooms.begin(); it != rooms.end(); ++it){
+            it->swap();
         }
     }
 };
@@ -76,7 +73,7 @@ void switchC(bool sw, int pos, int m, int n, int nOfSwitched){
 void light(){
     int n, m;
     cin >> n >> m;
-    globalMin = INT_MAX;
+    globalMin = INT32_MAX;
     target = new int[m];
     tmpTarget = new int[m];
     circuit = new Circuit[n];
@@ -101,15 +98,10 @@ void light(){
         }
     }
 
-    /*for(int i = 0; i < m; i++){
-        cout  << tmpTarget[i] << " ";
-    }
-    cout << endl;*/
-
     switchC(true, 0, m, n, 1);
     switchC(false, 0, m, n, 0);
 
-    if(globalMin == INT_MAX)
+    if(globalMin == INT32_MAX)
         cout << "impossible\n";
     else
         cout << globalMin << endl;
