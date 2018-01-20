@@ -14,7 +14,6 @@ typedef CGAL::Delaunay_triangulation_2<K, Tds> Delaunay;
 typedef Delaunay::Finite_edges_iterator EI;
 typedef std::pair<K::Point_2, int> IPoint;
 typedef boost::disjoint_sets_with_storage<> Uf;
-inline bool operator<(const Edge &e, const Edge &f) { return e.sql < f.sql; }
 
 struct Edge
 {
@@ -22,6 +21,7 @@ struct Edge
     int u, v;  // endpoints
     K::FT sql; // squared length
 };
+bool cmp(const Edge &e, const Edge &f) { return e.sql < f.sql; }
 
 void handle_missions()
 {
@@ -46,7 +46,7 @@ void handle_missions()
     for (EI e = t.finite_edges_begin(); e != t.finite_edges_end(); ++e)
         edges.push_back(Edge(e->first->vertex((e->second + 1) % 3)->info(), e->first->vertex((e->second + 2) % 3)->info(),
                              t.segment(e).squared_length()));
-    std::sort(edges.begin(), edges.end());
+    std::sort(edges.begin(), edges.end(), cmp);
     // compute components with power consumption p
     Uf ufp(n);
     typedef std::vector<Edge>::const_iterator ECI;
