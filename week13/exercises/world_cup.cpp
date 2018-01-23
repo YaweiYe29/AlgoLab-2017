@@ -10,19 +10,12 @@
 #include <CGAL/Gmpz.h>
 
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Delaunay_triangulation_2.h>
-#include <CGAL/Triangulation_vertex_base_with_info_2.h>
-#include <CGAL/Triangulation_face_base_2.h>
-
-typedef CGAL::Exact_predicates_inexact_constructions_kernel K2;
-typedef CGAL::Triangulation_vertex_base_with_info_2<int, K2> Vb;
-typedef CGAL::Triangulation_face_base_2<K2> Fb;
-typedef CGAL::Triangulation_data_structure_2<Vb,Fb> Tds;
-typedef CGAL::Delaunay_triangulation_2<K2,Tds> Triangulation;
+ 
+typedef CGAL::Exact_predicates_exact_constructions_kernel K;
+typedef CGAL::Delaunay_triangulation_2<K> Triangulation;
 typedef Triangulation::Edge_iterator  Edge_iterator;
 
-typedef CGAL::Exact_predicates_exact_constructions_kernel K;
 typedef CGAL::Gmpq ET;
 
 // program and solution types
@@ -30,7 +23,7 @@ typedef CGAL::Quadratic_program<ET> Program;
 typedef CGAL::Quadratic_program_solution<ET> Solution;
 typedef CGAL::Quotient<ET> SolT;
 
-typedef K2::Point_2 P;
+typedef K::Point_2 P;
 typedef std::pair<P,int> IPoint;
 
 // round up to next integer double
@@ -42,11 +35,12 @@ double floor_to_double(const SolT& x)
   return a;
 }
 
-int getSizeOfDifference(std::set<P> s1, std::set<P> s2){
+int getSizeOfDifference(std::vector<P> s1, std::vector<P> s2){
     std::vector<P> p(s1.size() + s2.size());
+    std::vector<P> p2(s1.size() + s2.size());
     auto it = std::set_intersection(s1.begin(), s1.end(), s2.begin(), s2.end(), p.begin());
-    p.resize(it - p.begin());
-    return s1.size() + s2.size() - 2 * p.size();
+    auto it2 = std::set_union(s1.begin(), s1.end(), s2.begin(), s2.end(), p2.begin());
+    return (it2 - p2.begin()) - (it - p.begin());
 }
 
 void testcase() {
@@ -66,6 +60,7 @@ void testcase() {
     Program lp (CGAL::SMALLER, true, 0, false, 0);
 
     std::vector<P> objects(n + m);
+    long max_supply = -1;
     for(int i = 0; i < n; i++){
         int x, y, s, a;     // (x,y) -> position, s -> supply(amount of beer), s -> alkohol content in %
         std::cin >> x >> y >> s >> a;
@@ -78,7 +73,6 @@ void testcase() {
         lp.set_b(2 * m + i, s);
     }
 
-    std::vector<P> stadiums(m);
     for(int i = 0; i < m; i++){
         int x, y, d, u; // (x, y) -> position, d -> demand(amount of beer), u -> upper limit of alcohol consumed
         std::cin >> x >> y >> d >> u;
@@ -101,34 +95,40 @@ void testcase() {
         }
     }
 
-    std::vector<IPoint> c_lines(c);                                     // load lines as vector
+    Triangulation t;
+    t.insert(objects.begin(), objects.end());
+    std::vector<IPoint> c_lines;                                     // load lines as vector
     for(int i = 0; i < c; i++){
         int x, y, r;
         std::cin >> x >> y >> r;
-        c_lines[i] = IPoint(P(x, y), r*r);
+        P pt(x, y);
+        auto nearest = t.nearest_vertex(pt);
+        if(r*r >= CGAL::squared_distance(nearest->point(), pt))
+            c_lines.push_back(IPoint(P(x, y), r*r));
     }
+    assert(c_lines.size() <= 100);
 
-    Triangulation t;
-    t.insert(c_lines.begin(), c_lines.end());
-
-    std::vector<std::set<P>> circles(n + m);                            // compute for each object circles it lies in
-    for(int i = 0; i < n + m; i++){
-        for(int j = 0; j < c; j++){
-            if(CGAL::squared_distance(objects[i], c_lines[j].first) < c_lines[j].second)
-                circles[i].insert(c_lines[j].first);
+    std::vector<std::vector<P>> circles(n + m);                            // compute for each object circles it lies in
+    for(int i = 0; i < (n + m); i++){
+        for(auto it = c_lines.begin(); it != c_lines.end(); ++it){
+            if(CGAL::squared_distance(objects[i], it->first) <= it->second)
+                circles[i].push_back(it->first);
         }
+        std::sort(circles[i].begin(), circles[i].end());
     }
 
     for(int i = 0; i < n; i++){                                         // go for each edge and check through how many circles it passes
         for(int j = 0; j < m; j++){
             int r = revenues[i][j] * 100;                               // and add revenue to objective function
-            r -= getSizeOfDifference(circles[i], circles[n + j]);
-            lp.set_c(i * m + j, (-1) * r);
+            int intersections = getSizeOfDifference(circles[i], circles[n + j]);
+            assert(intersections <= 100);
+            r-=intersections;
+            lp.set_c(i * m + j, ET((-1) * r));
         }
     }
 
     // solve the program, using ET as the exact type
-    Solution s = CGAL::solve_linear_program(lp, ET());
+    Solution s = CGAL::solve_nonnegative_linear_program(lp, ET());
     assert (s.solves_linear_program(lp));
 
     // output solution
@@ -149,9 +149,3 @@ int main(){
     }
     return 0;
 }
-/*According to my experience, the size of the Linear Program as well as the the number of insertions can make a substantial difference. 
-I haven't looked at your code. My adaptions consisted of:
-- Reducing the number of columns in matrix a from the number of gang members to the number of reachable gang members.
-- Sorting the agents by increasing hourly wage before inserting information into the lp. This avoids redundant lp insertions, 
-as you know that the lp is complete once you inspected one agent per gang member.
-I am not aware of an asymptotic runtime improvement induced by those changes, still they did the trick for me.*/
