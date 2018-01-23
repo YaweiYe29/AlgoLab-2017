@@ -54,6 +54,8 @@ void testcase() {
         - we will have 20(alkohol content smaller) + 20(demand equal) + 200(sum of vars of ith warehouse smaller than supply) = 240 constrains
         - min(4000, 240) = 240 which is not smaller than 50 but it is sufficient
         - to deal with contour lines... For 60p (where c <= 100) we can affort O(nmc) = (200 + 20) * 100 = 22 000 and so iterate through all circles
+        - for 100p we know that there are again just 100 c. lines that are essential to us. So we reduce them with DT. The center of line thats closest warehouse
+          or stadium lies not in its radius is not essential to us. By this method we select just up to 100 c. lines.
     */
 
     // by default, we have a nonnegative LP with Ax <= b

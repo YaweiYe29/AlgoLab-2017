@@ -1,20 +1,18 @@
+#include <map>
 #include <iostream>
 #include <vector>
 #include <cassert>
+
+#include <CGAL/Gmpq.h>
 #include <CGAL/basic.h>
 #include <CGAL/QP_models.h>
 #include <CGAL/QP_functions.h>
-#include <map>
 
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Delaunay_triangulation_2.h>
 
-// choose exact rational type
-#include <CGAL/Gmpq.h>
 typedef CGAL::Gmpq ET;
-// solution type the solver provides
 typedef CGAL::Quotient<ET> SolT;
-// program and solution types
 typedef CGAL::Quadratic_program<ET> Program;
 typedef CGAL::Quadratic_program_solution<ET> Solution;
 
@@ -24,11 +22,8 @@ typedef Triangulation::Edge_iterator  Edge_iterator;
 
 typedef struct GangMember{
     int x, y, u, v, w;
+    int bestA;
 } GangMember;
-
-int distance(GangMember g, int x, int y){
-    return (g.x - x) * (g.x - x) + (g.y - y) * (g.y - y);
-}
 
 void testcase(){
     // z -> money requested by holmes
@@ -45,21 +40,19 @@ void testcase(){
 
     // gang members
     std::map<K::Point_2, GangMember> gang;
-    std::map<K::Point_2, std::vector<int>> spiedGangs;
     std::vector<K::Point_2> pts;
+    pts.reserve(g);
     Triangulation t;
-
     // load gang members
     for(int i = 0; i < g; i++){
         GangMember gg;
         std::cin >> gg.x >> gg.y >> gg.u >> gg.v >> gg.w;
+        gg.bestA = -1;
         K::Point_2 pt(gg.x, gg.y);
         gang[pt] = gg;
         pts.push_back(pt);
     }
-
     t.insert(pts.begin(), pts.end());
-
     // our variables will be hours of agents so they have to be between 0 and 24
     Program * lp = new Program(CGAL::LARGER, true, 0, true, 24);
 
@@ -70,36 +63,30 @@ void testcase(){
     for(int i = 0; i < a; i++){
         int x, y, z; // z -> hour wage, x, y position
         std::cin >> x >> y >> z;
-
-        // set objective function -> agent * salary
-        lp->set_c(i, z);
         // find closest gang member
-        int min = INT32_MAX;
-        GangMember closest = gang[t.nearest_vertex(K::Point_2(x, y))->point()];
-    
-        //std::cout << "closest: " << closest.x << " " << closest.y << std::endl;
-        lp->set_a(i, 0, closest.u);
-        lp->set_a(i, 1, closest.v);
-        lp->set_a(i, 2, closest.w);
-        spiedGangs[K::Point_2(closest.x, closest.y)].push_back(i);
+        K::Point_2 p = t.nearest_vertex(K::Point_2(x, y))->point();
+        int gg = gang[p].bestA;
+        if(gg == -1)
+            gang[p].bestA = z;
+        else 
+            gang[p].bestA = std::min(gg, z);
     }
     
-    int constrain = 3;
-    for(auto it = spiedGangs.begin(); it != spiedGangs.end(); ++it){
-        if(it->second.size() > 1){
-            //std::cout << "gang" << it->first << " spied by " << it->second.size() << std::endl;
-            for(auto it2 = it->second.begin(); it2 != it->second.end(); ++it2){
-                lp->set_a(*it2, constrain, 1);
-            }
-            lp->set_r(constrain, CGAL::SMALLER);
-            lp->set_b(constrain, 24);
-            constrain++;
+    int agent = 0;
+    for(auto it = gang.begin(); it != gang.end(); ++it){
+        GangMember gg = it->second;
+        int z = gg.bestA;
+        if(z != -1){
+            lp->set_a(agent, 0, gg.u);
+            lp->set_a(agent, 1, gg.v);
+            lp->set_a(agent, 2, gg.w);
+            lp->set_c(agent, z);
+            agent++;
         }
     }
-    std::cout << "constrains: " << constrain << std::endl;
+
     // solve it!
     Solution s = CGAL::solve_linear_program(*lp, ET());
-    //std::cout << s.is_infeasible() << " " << CGAL::to_double(s.objective_value()) << " < " << z << std::endl;
     if(s.is_infeasible()){
         std::cout << "H\n";
     } else {
@@ -111,6 +98,7 @@ void testcase(){
 }
 
 int main(){
+    std::ios_base::sync_with_stdio(false);
     int n;
     std::cin >> n;
     while(n--){

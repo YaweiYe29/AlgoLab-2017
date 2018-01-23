@@ -73,8 +73,17 @@ void testcase(){
     }
     
     int agent = 0;
+    // sorting gained me next 50 points but still dont understand why.. For other guys switching from ET to double did the trick...
+    std::vector<GangMember> tmpGang;
+    tmpGang.reserve(gang.size());
     for(auto it = gang.begin(); it != gang.end(); ++it){
-        GangMember gg = it->second;
+        tmpGang.push_back(it->second);
+    }
+    std::sort(tmpGang.begin(), tmpGang.end(), [](GangMember g1, GangMember g2){
+        return g1.bestA < g2.bestA;
+    });
+    for(auto it = tmpGang.begin(); it != tmpGang.end(); ++it){
+        GangMember gg = *it;
         int z = gg.bestA;
         if(z != -1){
             lp->set_a(agent, 0, gg.u);
