@@ -5,34 +5,13 @@
 
 using namespace std;
 
-typedef struct Block{
-    int from, to;
-    int getPlayers(){ return to - from + 1; }
-    void print (){ cout << "from: " << from << " to: " << to << " players: " << getPlayers() << endl; }
-} Block;
-
-int cmp(Block b1, Block b2){
-    return b1.from < b2.from;
-}
-
-int sum(vector<Block> blocks){
-    int sum = 0;
-    for(auto it = blocks.begin(); it != blocks.end(); ++it)
-        sum += it->getPlayers();
-    return sum;
-}
-
-bool conflict(Block b1, Block b2){
-    return b1.from > b2.to || b1.to < b2.from;
-}
-
 void testcase(){
     // n -> defence players, m -> attackers, k -> power of attackers
     int n, m, k;
     cin >> n >> m >> k;
     vector<int> defence(n);
     vector<int> sums(n);
-    vector<Block> blocks;
+    vector<int> blocks(n, 0);
     for(int i = 0; i < n; i++){
         cin >> defence[i];
     }
@@ -45,9 +24,7 @@ void testcase(){
     while(i < n && j < n){
         int power = sums[i] - sums[j] + defence[j];
         if(power == k){
-            Block b;
-            b.from = j; b.to = i;
-            blocks.push_back(b);
+            blocks[i] = i - j + 1;
             i++; j++;
         } else if (power > k){
             j++;
@@ -55,31 +32,17 @@ void testcase(){
             i++;
         }
     }
-    if(blocks.size() < m){
-        cout << "fail\n";
-        return;
-    } else if (blocks.size() == m){
-        cout << sum(blocks) << endl;
-        return;
-    }
-
-    sort(blocks.begin(), blocks.end(), cmp);
-
-    int max = 0, prevRight, currRight = -1, last_i;
-    for (int i = 0; i < blocks.size(); i++){
-        if(blocks[i].from > currRight){
-            prevRight = currRight;
-            currRight = blocks[i].to;
-            max += blocks[i].getPlayers();
-            last_i = i;
-        } else {
-            
+    vector<vector<int>> DP(n+1, vector<int>(m+1, 0));
+    DP[1][1]=blocks[0];
+    for(int i = 1; i <= n; i++){
+        for(int j = 1; j <= m; j++){
+            DP[i][j] = max(DP[i - blocks[i - 1]][j - 1] + blocks[i - 1], DP[i - 1][j]);
         }
     }
-    if(max == 0)
-        cout << "fail\n";
+    if(DP[n][m] != DP[n][m-1])
+        cout << DP[n][m] << endl;
     else
-        std::cout << max << endl;
+        cout << "fail\n";
 }
 
 int main(){
