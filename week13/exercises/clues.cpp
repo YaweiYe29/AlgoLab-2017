@@ -37,16 +37,16 @@ bool check_interference(Triangulation &t, long long rr)
 
 bool can_color(Graph &G, int n, long long rr, std::vector<IPoint> pts)
 {
-    std::vector<int> colored(n, 2); // 2 -> unvisited, 0 -> red, 1 -> black
+    std::vector<int> colored(n, 0); // 0 -> unvisited, -1 -> red, 1 -> black
     std::vector<K::Point_2> ff, ss;
     Triangulation t1, t2;
     std::queue<int> stack;
     for (int i = 0; i < n; i++)
     { // check all componenets
-        if (colored[i] == 2)
+        if (colored[i] == 0)
         { // if component of vertex already checked than continue
             stack.push(i);  // do dfs from ith vertex
-            colored[i] = 0; // mark him as red
+            colored[i] = 1; // mark him as red
             while (!stack.empty())
             {
                 int curr = stack.front();
@@ -57,20 +57,16 @@ bool can_color(Graph &G, int n, long long rr, std::vector<IPoint> pts)
                 {
                     const int v = boost::target(*ebeg, G); // get target vertex
                     assert(v != curr);
-                    if (colored[v] != 2)
-                    {                                     // if already visited
-                        if (colored[v] == colored[curr]) {// if we reached the same color for him than its wrong
-                            return false;                 // return false (graph can not be colored in 2 colors)
-                        }
-                        else
-                            continue;                     // else its OK continue
-                    }
-                    colored[v] = (colored[curr] + 1) % 2; // color vertex with current color
+                    if (colored[v] == colored[curr]) // if we reached the same color for him than its wrong
+                        return false;                 // return false (graph can not be colored in 2 colors)
+                    else if(colored[v] == -colored[curr])
+                        continue;                     // else its OK continue
+                    colored[v] = -colored[curr];      // color vertex with current color
                     stack.push(v);
                 }
             }
         }
-        if (colored[i] == 0) ff.push_back(pts[i].first);
+        if (colored[i] == -1) ff.push_back(pts[i].first);
         else ss.push_back(pts[i].first);
     }
     t1.insert(ss.begin(), ss.end());
