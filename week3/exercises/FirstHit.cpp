@@ -1,11 +1,3 @@
-//
-//  FirstHit.cpp
-//  
-//
-//  Created by Jakub Lichman on 10/5/17.
-//
-//
-
 #include <iostream>
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 #include <cmath>
@@ -75,9 +67,6 @@ void ComputeRay(){
         std::cin >> n;
     }
 }
-
-
-
 
 int main()
 {
