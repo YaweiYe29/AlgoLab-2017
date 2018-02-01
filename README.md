@@ -93,7 +93,7 @@ My solutions on Algorithms Lab course at ETH Zurich. Not all ideas come from my 
 | 12   | New tiles   | 0   | Bit playing DP   |
 | 12   | Placing knights   | 100   | Max cardinality matching   |
 | 12   | Radiation   | 0   | LP   |
-| PoW12   | WorldCup   | 0   | DT + LP + realize that we never cross same circle twice i.e. we are inside it   |
+| PoW12   | WorldCup   | 100   | DT + LP + realize that we never cross same circle twice i.e. we are inside it   |
 | 13   | Bobs Burden   | 100   | 3x Dijkstra + out in edges + iterate over artificial edges   |
 | 13   | Clues   | 100   | DFS + 2 coloring + DT + connected compomenents   |
 | 13   | Corbusier | 100   | Table DP for 100p + split and list for 60p   |
@@ -101,4 +101,4 @@ My solutions on Algorithms Lab course at ETH Zurich. Not all ideas come from my 
 | 13   | Phantom Menace | 100   | Min vertex cut   |
 | 13   | Planks   | 100   | Split and List DP + sets as bits   |
 | PoW13   | Fleetrace   | 60   | Max weighted bipartite matching   |
-| 14   | Cantonal Curier   | 0   | ???   |
+| 14   | Cantonal Curier   | 100   | Max flow no idea why it works   |
