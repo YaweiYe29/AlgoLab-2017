@@ -17,6 +17,7 @@ week11/exercises/CMakeFiles/3.9.4/CompilerIdCXX/CMakeCXXCompilerId.cpp
 *.bak
 *.cxx
 *.txt
+.vscode/
 
 # Packages #
 ############
