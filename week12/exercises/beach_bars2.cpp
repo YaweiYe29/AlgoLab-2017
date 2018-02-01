@@ -1,4 +1,4 @@
-/*Solution worth 40 points*/
+/*Solution worth 100 points*/
 #include <iostream>
 #include <vector>
 #include <climits>
