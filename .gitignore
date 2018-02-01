@@ -10,9 +10,7 @@ week11/exercises/CMakeFiles/3.9.4/CompilerIdCXX/CMakeCXXCompilerId.cpp
 *.exe
 *.o
 *.so
-*.out 
 *.bin
-*.out
 *.cmake
 *.bak
 *.cxx
@@ -39,7 +37,6 @@ week11/exercises/CMakeFiles/3.9.4/CompilerIdCXX/CMakeCXXCompilerId.cpp
 *.sqlite
 
 # test folders
-tests/
 preparation/
 prep/
 
