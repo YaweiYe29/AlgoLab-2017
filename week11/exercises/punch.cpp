@@ -1,49 +1,56 @@
-/*Idea from https://github.com/timethy/algolab/blob/master/week11/punch/punch.cpp*/
 #include <iostream>
-#include <cassert>
-#include <algorithm>
 #include <vector>
+#include <algorithm>
 
 using namespace std;
-
-void testcase() {
-    int n, k;
+/*Program analysis
+ * State in DP represents pair(min price, max dist beverages) for volume i and beverages j
+ * State DP[0][0] is (0,0)
+ * Next states are DP[x][0] for all 0 <= x < k + max_volume; which represents minimal prices just with first beverage
+ * Now for each state we are going to minimize price and maximize beverages
+ * We can either take 
+ * */
+void testcase(){
+    int n, k;                               // n -> distinct beverages, k -> people coming to the party
     cin >> n >> k;
-    vector<int> volumes(n), costs(n);
-    for(int i = 0; i < n; i++){
+    vector<int> costs(n), volumes(n);
+    int maxb = 0;
+    for(int i = 0; i < n; i++){             // load costs and volumes
         cin >> costs[i] >> volumes[i];
+        maxb = max(maxb, volumes[i]);
     }
-    int maxVolume = k + *max_element(volumes.begin(), volumes.end());           // max possible volume needed
-    vector<vector<pair<int,int>>> memo(n, vector<pair<int,int>>(maxVolume));    // DP table
-    memo[0][0] = make_pair(0,0);                                                // (cost, number of distinct beverages)
-    for(int i = 1; i < maxVolume; i++){
-        int ntimes = (i + volumes[0] - 1) / volumes[0];                         // how many packs of beverage 0 we need
-        memo[0][i] = make_pair(ntimes * costs[0], 1);                           // cost of volume i only with beverage 0
+    vector<vector<pair<int,int>>> DP(k + maxb, vector<pair<int,int>>(n, pair<int,int>(0,0)));
+    for(int i = 1; i < k + maxb; i++){      // precompute min prices just with 1 beverage
+        if((DP[i-1][0].first/costs[0]) * volumes[0] >= i)
+            DP[i][0] = DP[i-1][0];
+        else
+            DP[i][0] = make_pair(DP[i-1][0].first + costs[0], 1);
     }
-    for(int i = 1; i < n; i++){
-        memo[i][0] = memo[i-1][0];
-        for(int j = 1; j < maxVolume; j++){ // for every possible volume we will try if the cost can be minimized by replace one beverage with ith one
-            auto not_added = memo[i -1][j];
-            int min_cost, max_bev;
-            if(j < volumes[i]){             // if targeted volume is smaller then the one with the beverage than take it
-                min_cost = costs[i];
-                max_bev = 1;
-            } else {                        // else find state where volume is targeted volume - volume of curr beverage. And try this cost and n. of beverages
-                auto added = memo[i][j - volumes[i]];  
-                min_cost = added.first + costs[i];
-                max_bev = added.second + (added == memo[i-1][j - volumes[i]] ? 1 : 0);
+
+    for(int i = 1; i < k + maxb; i++){
+        for(int j = 1; j < n; j++){
+            int price = DP[i][j-1].first;               // take price as for one bev. less
+            int bev_count = DP[i][j-1].second;          // take count as for one bev. less
+            if(price > costs[j] && volumes[j] >= i){    // if its cheaper to take just one of this kind take it
+                price = costs[j];
+                bev_count = 1;
             }
-            if(min_cost > not_added.first){ // if its cheaper to keep the same beverage do it
-                min_cost = not_added.first;
-                max_bev = not_added.second;
-            } else if(min_cost == not_added.first){ // if costs are the same than take the one with more distinct beverages
-                max_bev = max(max_bev, not_added.second);
+            if(i - volumes[j] > 0){                     // if we can access memo
+                int p = DP[i - volumes[j]][j].first;
+                int b = DP[i - volumes[j]][j].second;
+                if(p == DP[i - volumes[j]][j-1].first)  // if they have the same price
+                    b = max(b, DP[i - volumes[j]][j-1].second + 1); // maximize beverage count
+                p += costs[j];                          // plus cost of curr beverage
+                if(price > p){                          // if its cheaper take it
+                    price = p;
+                    bev_count = b;
+                } else if (price == p)                  // if price is the same than maximize beverages count
+                    bev_count = max(bev_count, b);
             }
-            memo[i][j] = make_pair(min_cost, max_bev);
+            DP[i][j] = make_pair(price, bev_count);
         }
     }
-
-    std::cout << memo[n-1][k].first << " " << memo[n-1][k].second << std::endl;
+    cout << DP[k][n-1].first << " " << DP[k][n-1].second << endl;
 }
 
 int main(){
