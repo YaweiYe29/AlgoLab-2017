@@ -1,85 +1,56 @@
-/*primitive solution worth 30 points*/
 #include <iostream>
-#include <vector>
 #include <algorithm>
+#include <vector>
 
 using namespace std;
-
-typedef struct Block{
-    int from, to;
-    int getPlayers(){ return to - from + 1; }
-    void print (){ cout << "from: " << from << " to: " << to << " players: " << getPlayers() << endl; }
-} Block;
-
-int cmp(Block b1, Block b2){
-    return b1.from < b2.from;
-}
-
-int sum(vector<Block> blocks){
-    int sum = 0;
-    for(auto it = blocks.begin(); it != blocks.end(); ++it)
-        sum += it->getPlayers();
-    return sum;
-}
-
-bool conflict(Block b1, Block b2){
-    return b1.from > b2.to || b1.to < b2.from;
-}
-
+/*Program analysis:
+ * Table DP where state[i][j] represents max attacked defenders from first i players attacking first j defenders
+ * To find "attackable" blocks we do sliding window technique with precomputed sums which takes O(n) time
+ * Base cases are state[0][x] which are all 0 (0 players can attack 0 blocks)
+ * And state[x][0] which are equal to blocks[0] i.e. whether we can attack first player
+ * Running time O(n*m)
+ * */
 void testcase(){
-    // n -> defence players, m -> attackers, k -> power of attackers
     int n, m, k;
     cin >> n >> m >> k;
-    vector<int> defence(n);
-    vector<int> sums(n);
-    vector<Block> blocks;
-    for(int i = 0; i < n; i++){
-        cin >> defence[i];
-    }
-    sums[0] = defence[0];
+    vector<int> defence_sum(n), defence(n);
+    cin >> defence[0];
+    defence_sum[0] = defence[0];
     for(int i = 1; i < n; i++){
-        sums[i] = sums[i-1] + defence[i];
+        cin >> defence[i];
+        defence_sum[i] = defence[i] + defence_sum[i-1];
     }
-    int j = 0, i = 0;
-    // sliding window O(n)
-    while(i < n && j < n){
-        int power = sums[i] - sums[j] + defence[j];
-        if(power == k){
-            Block b;
-            b.from = j; b.to = i;
-            blocks.push_back(b);
-            i++; j++;
-        } else if (power > k){
-            j++;
+    int head = 0, tail = 0;
+    vector<int> blocks(n, 0);
+    while(head < n){
+        int diff = defence_sum[head] - defence_sum[tail] + defence[tail];
+        if(diff == k){
+            blocks[head] = head - tail + 1;
+            head++; tail++;
+        } else if (diff < k){
+            head++;
         } else {
-            i++;
+            tail++;
         }
     }
-    if(blocks.size() < m){
-        cout << "fail\n";
-        return;
-    } else if (blocks.size() == m){
-        cout << sum(blocks) << endl;
-        return;
+    vector<vector<int>> DP(m+1, vector<int>(n));
+    for(int i = 0; i < n; i++){
+        DP[0][i] = 0;
+    }
+    for(int i = 1; i < m+1; i++){
+        DP[i][0] = blocks[0];
     }
 
-    sort(blocks.begin(), blocks.end(), cmp);
-
-    int max = 0, prevRight, currRight = -1, last_i;
-    for (int i = 0; i < blocks.size(); i++){
-        if(blocks[i].from > currRight){
-            prevRight = currRight;
-            currRight = blocks[i].to;
-            max += blocks[i].getPlayers();
-            last_i = i;
-        } else {
-            
+    for(int i = 1; i < m + 1; i++){
+        for(int j = 1; j < n; j++){
+            DP[i][j] = max(blocks[j] + DP[i-1][j - blocks[j]], DP[i][j-1]);
         }
     }
-    if(max == 0)
-        cout << "fail\n";
+    if(DP[m - 1][n - 1] != DP[m][n - 1])
+        cout << DP[m][n - 1];
     else
-        std::cout << max << endl;
+        cout << "fail";
+    cout << endl;
 }
 
 int main(){
