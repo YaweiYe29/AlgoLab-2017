@@ -7,9 +7,8 @@
 #include <boost/graph/successive_shortest_path_nonnegative_weights.hpp>
 #include <boost/graph/find_flow_cost.hpp>
 
-/* Solution worth 60p.
- * We are doing the same as in 40p solution but we need to avoid negative weights and so we add 50-coeff and traverse
- * flow graph and count only costs that are not 50(added by us).
+/* Solution worth 100p.
+ * The only difference to 60p solution is that we have to add edges from src to sailors to make graph bipartite and avoid all other edges.
  * */
 
 typedef boost::adjacency_list_traits<boost::vecS, boost::vecS, boost::directedS> Traits;
@@ -38,7 +37,6 @@ public:
         : G(G), capacitymap(capacitymap), weightmap(weightmap), revedgemap(revedgemap) {}
 
     void addEdge(int u, int v, long c, long w) {
-        std::cout << "Adding edge from " << u << " to " << v << " with cap " << c << " and cost " << w << std::endl;
         Edge e, rev_e;
         boost::tie(e, boost::tuples::ignore) = boost::add_edge(u, v, G);
         boost::tie(rev_e, boost::tuples::ignore) = boost::add_edge(v, u, G);
@@ -55,29 +53,27 @@ void testcase() {
     int b, s, p;
     std::cin >> b >> s >> p;
     // Create Graph and Maps
-    int n = 2*(b+s) + 2;
-    Graph G(n);
+    Graph G(b + s + 2);
     EdgeCapacityMap capacitymap = boost::get(boost::edge_capacity, G);
     EdgeWeightMap weightmap = boost::get(boost::edge_weight, G);
     ReverseEdgeMap revedgemap = boost::get(boost::edge_reverse, G);
     ResidualCapacityMap rescapacitymap = boost::get(boost::edge_residual_capacity, G);
     EdgeAdder eaG(G, capacitymap, weightmap, revedgemap);
     
-    const int v_source = n - 2;
-    const int v_target = n - 1;
+    const int v_source = b + s;
+    const int v_target = b + s + 1;
+    std::vector<std::vector<int>> bipart(b, std::vector<int>(s, 50));
     for(int i = 0; i < b; i++){
         eaG.addEdge(v_source, i, 1, 0);
-        eaG.addEdge(i, b + s + i, 1, 50);
     }
     for(int i = 0; i < s; i++){
-        eaG.addEdge((2*b + s)+i, v_target, 1, 0);
-        eaG.addEdge(i + b, i + b + b + s, 1, 50);
+        eaG.addEdge(b+i, v_target, 1, 0);
+        eaG.addEdge(v_source, b+i, 1, 50);
     }
     for(int i = 0; i < p; i++){
         int from, to, coeff;
         std::cin >> from >> to >> coeff;
         eaG.addEdge(from, b + to, 1, 50 - coeff);
-        eaG.addEdge(from + b + s, to + b + b + s, 1, 50 - coeff);
     }
 
     int flow = boost::push_relabel_max_flow(G, v_source, v_target);
@@ -85,12 +81,11 @@ void testcase() {
     int cost = 0;
     // Iterate over all edges leaving the source to sum up the flow values.
     OutEdgeIt e, eend;
-    for(int i = 0; i < n; i++){
+    for(int i = 0; i < b; i++){
         for(boost::tie(e, eend) = boost::out_edges(boost::vertex(i,G), G); e != eend; ++e) {
             int eflow = capacitymap[*e] - rescapacitymap[*e];
             int ecost = weightmap[*e];
-            if(eflow == 1 && ecost != 0){
-                //std::cout << *e << " -> " << ecost << std::endl;
+            if(eflow == 1){
                 cost += 50 - ecost;
             }
         }
