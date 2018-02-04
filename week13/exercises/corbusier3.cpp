@@ -3,7 +3,6 @@
 #include <algorithm>
 
 using namespace std;
-typedef long long ll;
 /*
  * for 100p we need to use bottom up DP table with n rows(one row per new disk) and k columns(one column per one possible sum)
  * State DP[i][j] represents how many sums of j can be created from first i disks
@@ -24,8 +23,7 @@ void testcase(){
             DP[i][j] = disks[i-1] == j || DP[i-1][(j - disks[i-1] + k) % k] || DP[i - 1][j];
         }   // I can create sum j of first i disks if disk i is equal to sum or if there exists sum without ith disk equal to (sum - ith disks)
     }       // or I can create sum j of first i - 1 disks
-    if(DP[n][ii]) cout << "yes\n";
-    else cout << "no\n";
+    cout << (DP[n][ii] ? "yes" : "no") << endl;
 }
 int main(){
     std::ios_base::sync_with_stdio(false);
