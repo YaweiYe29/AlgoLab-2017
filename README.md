@@ -100,5 +100,5 @@ My solutions on Algorithms Lab course at ETH Zurich. Not all ideas come from my 
 | 13   | Goldfinger | 100   | DT + LP + similar to strikesback   |
 | 13   | Phantom Menace | 100   | Min vertex cut   |
 | 13   | Planks   | 100   | Split and List DP + sets as bits   |
-| PoW13   | Fleetrace   | 60   | Max weighted bipartite matching   |
+| PoW13   | Fleetrace   | 100   | Max weighted bipartite matching   |
 | 14   | Cantonal Curier   | 100   | Max flow no idea why it works   |
