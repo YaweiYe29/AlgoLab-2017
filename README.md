@@ -24,6 +24,12 @@ My solutions on Algorithms Lab course at ETH Zurich. Not all ideas come from my 
   * Be prepared to spend up to 20 hours solving various algo tasks
   * Very similar to informatics olympiads
   * One of the most difficult courses at ETH
+  
+## Own experience
+  * If you have experience from informatics olympiads it should not be that hard to pass
+  * If not but you are really smart guy it should not be problem as well
+  * If you are not one of the cases above try to spend at least 15 hours per week + 3 weeks before the exam with preparation
+  * Passing score is usually around 250 out of 600 points
 
 # SPOILERS - Solutions
 | Week   | Problem   | Points (out of 100)   | Solution   |
